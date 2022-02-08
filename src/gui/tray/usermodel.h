@@ -76,6 +76,7 @@ public:
     QString statusEmoji() const;
     void processCompletedSyncItem(const Folder *folder, const SyncFileItemPtr &item);
     bool canLogout() const;
+    bool isPublicShareLink() const;
 
 signals:
     void guiLog(const QString &, const QString &);
@@ -184,6 +185,7 @@ public:
         ServerRole,
         ServerHasUserStatusRole,
         CanLogoutRole,
+        RemoveAccountTextRole,
         StatusIconRole,
         StatusEmojiRole,
         StatusMessageRole,
