@@ -18,6 +18,7 @@
 #include "propagateremotemove.h"
 #include "ui_invalidfilenamedialog.h"
 
+#include "filesystem.h"
 #include <folder.h>
 
 #include <QPushButton>
@@ -85,7 +86,7 @@ InvalidFilenameDialog::InvalidFilenameDialog(AccountPtr account, Folder *folder,
     _ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("Rename file"));
 
     _ui->descriptionLabel->setText(tr("The file %1 could not be synced because the name contains characters which are not allowed on this system.").arg(_originalFileName));
-    _ui->explanationLabel->setText(tr("The following characters are not allowed on the system: * \" | & ? , ; : \\ / ~ < >"));
+    _ui->explanationLabel->setText(tr("The following characters are not allowed on the system: * \" | & ? , ; : \\ / ~ < > leading/trailing spaces"));
     _ui->filenameLineEdit->setText(filePathFileInfo.fileName());
 
     connect(_ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
@@ -126,8 +127,8 @@ void InvalidFilenameDialog::accept()
 {
     _newFilename = _relativeFilePath + _ui->filenameLineEdit->text().trimmed();
     const auto propfindJob = new PropfindJob(_account, QDir::cleanPath(_folder->remotePath() + _newFilename));
-    connect(propfindJob, &PropfindJob::result, this, &InvalidFilenameDialog::onRemoteFileAlreadyExists);
-    connect(propfindJob, &PropfindJob::finishedWithError, this, &InvalidFilenameDialog::onRemoteFileDoesNotExist);
+    connect(propfindJob, &PropfindJob::result, this, &InvalidFilenameDialog::onRemoteDestinationFileAlreadyExists);
+    connect(propfindJob, &PropfindJob::finishedWithError, this, &InvalidFilenameDialog::onRemoteDestinationFileDoesNotExist);
     propfindJob->start();
 }
 
@@ -137,12 +138,17 @@ void InvalidFilenameDialog::onFilenameLineEditTextChanged(const QString &text)
     const auto illegalContainedCharacters = getIllegalCharsFromString(text);
     const auto containsIllegalChars = !illegalContainedCharacters.empty() || text.endsWith(QLatin1Char('.'));
     const auto isTextValid = isNewFileNameDifferent && !containsIllegalChars;
+    const auto hasLeadingOrTrailingSpaces = text.startsWith(QLatin1Char(' ')) || text.endsWith(QLatin1Char(' '));
 
-    if (isTextValid) {
+    if (isTextValid && !hasLeadingOrTrailingSpaces) {
         _ui->errorLabel->setText("");
     } else {
-        _ui->errorLabel->setText(tr("Filename contains illegal characters: %1")
-                                     .arg(illegalCharacterListToString(illegalContainedCharacters)));
+        if (hasLeadingOrTrailingSpaces) {
+            _ui->errorLabel->setText(tr("Filename contains leading and/or trailing spaces."));
+        } else {
+            _ui->errorLabel->setText(tr("Filename contains illegal characters: %1")
+                                         .arg(illegalCharacterListToString(illegalContainedCharacters)));
+        }
     }
 
     _ui->buttonBox->button(QDialogButtonBox::Ok)
@@ -162,7 +168,7 @@ void InvalidFilenameDialog::onMoveJobFinished()
     QDialog::accept();
 }
 
-void InvalidFilenameDialog::onRemoteFileAlreadyExists(const QVariantMap &values)
+void InvalidFilenameDialog::onRemoteDestinationFileAlreadyExists(const QVariantMap &values)
 {
     Q_UNUSED(values);
 
@@ -170,9 +176,19 @@ void InvalidFilenameDialog::onRemoteFileAlreadyExists(const QVariantMap &values)
     _ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
 }
 
-void InvalidFilenameDialog::onRemoteFileDoesNotExist(QNetworkReply *reply)
+void InvalidFilenameDialog::onRemoteDestinationFileDoesNotExist(QNetworkReply *reply)
 {
     Q_UNUSED(reply);
+
+    const auto propfindJob = new PropfindJob(_account, QDir::cleanPath(_folder->remotePath() + _originalFileName));
+    connect(propfindJob, &PropfindJob::result, this, &InvalidFilenameDialog::onRemoteSourceFileAlreadyExists);
+    connect(propfindJob, &PropfindJob::finishedWithError, this, &InvalidFilenameDialog::onRemoteSourceFileDoesNotExist);
+    propfindJob->start();
+}
+
+void InvalidFilenameDialog::onRemoteSourceFileAlreadyExists(const QVariantMap &values)
+{
+    Q_UNUSED(values);
 
     // File does not exist. We can rename it.
     const auto remoteSource = QDir::cleanPath(_folder->remotePath() + _originalFileName);
@@ -180,5 +196,21 @@ void InvalidFilenameDialog::onRemoteFileDoesNotExist(QNetworkReply *reply)
     const auto moveJob = new MoveJob(_account, remoteSource, remoteDestionation, this);
     connect(moveJob, &MoveJob::finishedSignal, this, &InvalidFilenameDialog::onMoveJobFinished);
     moveJob->start();
+}
+
+void InvalidFilenameDialog::onRemoteSourceFileDoesNotExist(QNetworkReply *reply)
+{
+    Q_UNUSED(reply);
+
+    // File does not exist. We can rename it.
+    const auto localSource = QDir::cleanPath(_folder->path() + _originalFileName);
+    const auto localDestionation = QDir::cleanPath(_folder->path()+ _newFilename);
+
+    QString error;
+    if (!FileSystem::rename(localSource, localDestionation, &error)) {
+        _ui->errorLabel->setText(tr("Could not rename local file. %1").arg(error));
+        return;
+    }
+    QDialog::accept();
 }
 }
