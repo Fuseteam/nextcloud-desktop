@@ -116,6 +116,11 @@ SyncEngine::SyncEngine(AccountPtr account, const QString &localPath,
     connect(this, &SyncEngine::finished, [this](bool /* finished */) {
         _journal->keyValueStoreSet("last_sync", QDateTime::currentSecsSinceEpoch());
     });
+
+    _leadingAndTrailingSpacesFilesAllowedClearTimer.setSingleShot(true);
+    connect(&_leadingAndTrailingSpacesFilesAllowedClearTimer, &QTimer::timeout, this, [this]() {
+        _leadingAndTrailingSpacesFilesAllowed.clear();
+    });
 }
 
 SyncEngine::~SyncEngine()
@@ -548,6 +553,8 @@ void SyncEngine::startSync()
     emit transmissionProgress(*_progressInfo);
 
     _discoveryPhase.reset(new DiscoveryPhase);
+    _discoveryPhase->_leadingAndTrailingSpacesFilesAllowed = _leadingAndTrailingSpacesFilesAllowed;
+    _leadingAndTrailingSpacesFilesAllowedClearTimer.start(60 * 1000);
     _discoveryPhase->_account = _account;
     _discoveryPhase->_excludes = _excludedFiles.data();
     const QString excludeFilePath = _localPath + QStringLiteral(".sync-exclude.lst");
@@ -922,6 +929,14 @@ void SyncEngine::slotAddTouchedFile(const QString &fn)
 void SyncEngine::slotClearTouchedFiles()
 {
     _touchedFiles.clear();
+}
+
+void SyncEngine::addAcceptedInvalidFileName(const QString& filePath)
+{
+    _leadingAndTrailingSpacesFilesAllowed.append(filePath);
+    if (_leadingAndTrailingSpacesFilesAllowedClearTimer.isActive()) {
+        _leadingAndTrailingSpacesFilesAllowedClearTimer.start(60 * 1000);
+    }
 }
 
 bool SyncEngine::wasFileTouched(const QString &fn) const
