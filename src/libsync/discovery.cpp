@@ -194,26 +194,26 @@ void ProcessDirectoryJob::process()
     QTimer::singleShot(0, _discoveryData, &DiscoveryPhase::scheduleMoreJobs);
 }
 
-bool ProcessDirectoryJob::handleExcluded(const QString &path, const QString &localName, bool isDirectory, bool isHidden, bool isSymlink, bool isNew)
+bool ProcessDirectoryJob::handleExcluded(const QString &path, const QString &localName, bool isDirectory, bool isHidden, bool isSymlink, bool isNotJustCreated)
 {
     auto excluded = _discoveryData->_excludes->traversalPatternMatch(path, isDirectory ? ItemTypeDirectory : ItemTypeFile);
 
     const auto fileName = path.mid(path.lastIndexOf('/') + 1);
 
     if (excluded == CSYNC_NOT_EXCLUDED) {
-        if (fileName.endsWith(QLatin1Char(' '))) {
+        const auto endsWithSpace = fileName.endsWith(QLatin1Char(' '));
+        const auto startsWithSpace = fileName.startsWith(QLatin1Char(' '));
+        if (startsWithSpace && endsWithSpace) {
+            excluded = CSYNC_FILE_EXCLUDE_LEADING_AND_TRAILING_SPACE;
+        } else if (endsWithSpace) {
             excluded = CSYNC_FILE_EXCLUDE_TRAILING_SPACE;
-        } else if (fileName.startsWith(QLatin1Char(' '))) {
+        } else if (startsWithSpace) {
             excluded = CSYNC_FILE_EXCLUDE_LEADING_SPACE;
         }
     }
 
-    const auto fullPath = QString(_discoveryData->_localDir + path);
-    const auto hasSpace = path.endsWith(QLatin1Char(' '));
-    const auto isAllowed = _discoveryData->_leadingAndTrailingSpacesFilesAllowed.contains(fullPath);
-
-    if ((excluded == CSYNC_FILE_EXCLUDE_LEADING_SPACE || excluded == CSYNC_FILE_EXCLUDE_TRAILING_SPACE)
-            && ((!Utility::isWindows() && isNew) || _discoveryData->_leadingAndTrailingSpacesFilesAllowed.contains(fullPath))) {
+    if ((excluded == CSYNC_FILE_EXCLUDE_LEADING_SPACE || excluded == CSYNC_FILE_EXCLUDE_TRAILING_SPACE || excluded == CSYNC_FILE_EXCLUDE_LEADING_AND_TRAILING_SPACE)
+            && ((!Utility::isWindows() && isNotJustCreated) || _discoveryData->_leadingAndTrailingSpacesFilesAllowed.contains(_discoveryData->_localDir + path))) {
         excluded = CSYNC_NOT_EXCLUDED;
     }
 
@@ -299,6 +299,10 @@ bool ProcessDirectoryJob::handleExcluded(const QString &path, const QString &loc
             break;
         case CSYNC_FILE_EXCLUDE_LEADING_SPACE:
             item->_errorString = tr("Filename contains leading spaces.");
+            item->_status = SyncFileItem::FileNameInvalid;
+            break;
+        case CSYNC_FILE_EXCLUDE_LEADING_AND_TRAILING_SPACE:
+            item->_errorString = tr("Filename contains leading and trailing spaces.");
             item->_status = SyncFileItem::FileNameInvalid;
             break;
         case CSYNC_FILE_EXCLUDE_LONG_FILENAME:

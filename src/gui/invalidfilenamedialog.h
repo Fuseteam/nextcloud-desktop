@@ -61,7 +61,10 @@ private:
     void onRemoteSourceFileAlreadyExists(const QVariantMap &values);
     void onRemoteSourceFileDoesNotExist(QNetworkReply *reply);
     void checkIfAllowedToRename();
+    void onCheckIfAllowedToRenameComplete(const QVariantMap &values, QNetworkReply *reply = nullptr);
+    bool processLeadingOrTrailingSpacesError(const QString &fileName);
     void onPropfindPermissionSuccess(const QVariantMap &values);
+    void onPropfindPermissionError(QNetworkReply *reply = nullptr);
 private slots:
     void useInvalidName();
 };
