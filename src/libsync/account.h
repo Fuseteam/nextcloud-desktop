@@ -322,6 +322,8 @@ signals:
 
     void userStatusChanged();
 
+    void userOnlineStatusChanged();
+
     void capabilitiesChanged();
 
     void lockFileSuccess();
