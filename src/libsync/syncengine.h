@@ -299,7 +299,6 @@ private:
     std::set<QString> _localDiscoveryPaths;
 
     QStringList _leadingAndTrailingSpacesFilesAllowed;
-    QTimer _leadingAndTrailingSpacesFilesAllowedClearTimer;
 };
 }
 

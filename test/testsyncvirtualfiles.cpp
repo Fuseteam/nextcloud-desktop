@@ -817,7 +817,7 @@ private slots:
 
     void testCreateFileWithTrailingSpaces_remoteDontGetRenamedAutomatically()
     {
-        // On Windows we can't reate files/folders with leading/trailing spaces locally. So, we have to fail those items. On other OSs - we just sync them down normally.
+        // On Windows we can't create files/folders with leading/trailing spaces locally. So, we have to fail those items. On other OSs - we just sync them down normally.
         FakeFolder fakeFolder{ FileInfo() };
         setupVfs(fakeFolder);
         QCOMPARE(fakeFolder.currentLocalState(), fakeFolder.currentRemoteState());
@@ -853,7 +853,7 @@ private slots:
 
     void testCreateFileWithTrailingSpaces_remoteGetRenamedManually()
     {
-        // On Windows we can't reate files/folders with leading/trailing spaces locally. So, we have to fail those items. On other OSs - we just sync them down normally.
+        // On Windows we can't create files/folders with leading/trailing spaces locally. So, we have to fail those items. On other OSs - we just sync them down normally.
         FakeFolder fakeFolder{FileInfo()};
         setupVfs(fakeFolder);
         QCOMPARE(fakeFolder.currentLocalState(), fakeFolder.currentRemoteState());
