@@ -59,8 +59,8 @@ AccountState::AccountState(AccountPtr account)
         this, &AccountState::slotCredentialsAsked);
     connect(account.data(), &Account::pushNotificationsReady,
             this, &AccountState::slotPushNotificationsReady);
-    connect(account.data(), &Account::userOnlineStatusChanged, this,
-        &AccountState::slotUserOnlineStatusChanged);
+    connect(account.data(), &Account::serverUserStatusChanged, this,
+        &AccountState::slotServerUserStatusChanged);
 
     connect(this, &AccountState::isConnectedChanged, [=]{
         // Get the Apps available on the server if we're now connected.
@@ -561,7 +561,7 @@ void AccountState::slotPushNotificationsReady()
     }
 }
 
-void AccountState::slotUserOnlineStatusChanged()
+void AccountState::slotServerUserStatusChanged()
 {
     setDesktopNotificationsAllowed(_account->userStatusConnector()->userStatus().state() != UserStatus::OnlineStatus::DoNotDisturb);
 }

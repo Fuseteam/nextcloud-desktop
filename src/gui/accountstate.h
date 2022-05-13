@@ -217,7 +217,7 @@ private Q_SLOTS:
 
     void slotCheckConnection();
     void slotPushNotificationsReady();
-    void slotUserOnlineStatusChanged();
+    void slotServerUserStatusChanged();
 
 private:
     AccountPtr _account;

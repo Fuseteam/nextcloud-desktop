@@ -129,7 +129,7 @@ signals:
     void userStatusFetched(const UserStatus &userStatus);
     void predefinedStatusesFetched(const std::vector<UserStatus> &statuses);
     void userStatusSet();
-    void userOnlineStatusChanged();
+    void serverUserStatusChanged();
     void messageCleared();
     void error(Error error);
 };

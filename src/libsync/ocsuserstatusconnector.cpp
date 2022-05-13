@@ -262,7 +262,7 @@ void OcsUserStatusConnector::onUserStatusFetched(const QJsonDocument &json, int 
     emit userStatusFetched(_userStatus);
 
     if (oldOnlineState != _userStatus.state()) {
-        emit userOnlineStatusChanged();
+        emit serverUserStatusChanged();
     }
 }
 
@@ -423,7 +423,7 @@ void OcsUserStatusConnector::onUserStatusOnlineStatusSet(const QJsonDocument &js
     emit userStatusSet();
 
     if (oldOnlineState != _userStatus.state()) {
-        emit userOnlineStatusChanged();
+        emit serverUserStatusChanged();
     }
 }
 

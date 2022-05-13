@@ -322,7 +322,7 @@ signals:
 
     void userStatusChanged();
 
-    void userOnlineStatusChanged();
+    void serverUserStatusChanged();
 
     void capabilitiesChanged();
 
